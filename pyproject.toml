@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "daily-devotional-scraper"
+version = "0.1.0"
+description = "Scraper for Pastor Jon Courson's daily devotionals"
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{ include = "scripts" }]
+
+[tool.poetry.dependencies]
+python = "^3.13"
+requests = "^2.31.0"
+beautifulsoup4 = "^4.12.2"
+lxml = "^4.9.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

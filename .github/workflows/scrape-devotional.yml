@@ -1,0 +1,50 @@
+name: Daily Devotional Scraper
+
+on:
+  schedule:
+    # Run every day at 10:00 AM UTC (1:00 PM Nairobi time)
+    - cron: '0 10 * * *'
+  workflow_dispatch: # Manual trigger for testing
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+        version: latest
+
+    - name: Install dependencies
+      run: poetry install --no-interaction --no-root
+
+    - name: Run scraper
+      run: poetry run python scripts/scrape_devotional.py
+
+    - name: Commit and push if changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add data/
+        git diff --staged --quiet || git commit -m "Update daily devotional - $(date +'%Y-%m-%d')"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Deploy to GitHub Pages (optional)
+      uses: peaceiris/actions-gh-pages@v3
+      if: github.ref == 'refs/heads/main'
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./
