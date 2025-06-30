@@ -1,6 +1,6 @@
 # 📖 Daily Devotional Scraper
 
-A GitHub Actions-powered scraper that collects daily devotionals from [joncourson.com](https://joncourson.com), stores them in JSON format, and optionally deploys them to GitHub Pages as a static site.
+A GitHub Actions-powered scraper that collects daily devotionals from [joncourson.com](https://www.joncourson.com), stores them in JSON format, and optionally deploys them to GitHub Pages as a static site.
 
 ---
 
@@ -44,8 +44,8 @@ A GitHub Actions-powered scraper that collects daily devotionals from [joncourso
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/christianwhocodes/daily-devotional.git
-cd daily-devotional
+git clone https://github.com/christianwhocodes/scraper-daily-devotional.git
+cd scraper-daily-devotional
 ```
 
 ### 2. Install dependencies (using Poetry)
