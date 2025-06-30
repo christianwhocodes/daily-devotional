@@ -6,7 +6,7 @@ A GitHub Actions-powered scraper that collects daily devotionals from [joncourso
 
 ## 🌍 Live Site (optional)
 
-> [https://christianwhocodes.github.io/daily-devotional-scraper](https://christianwhocodes.github.io/daily-devotional-scraper)
+> [https://daily-devotional.christianwhocodes.space](https://daily-devotional.christianwhocodes.space)
 
 ---
 
