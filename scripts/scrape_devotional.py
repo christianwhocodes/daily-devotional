@@ -2,6 +2,7 @@
 """
 Daily devotional scraper for joncourson.com
 Saves data to JSON files for static site consumption
+Fixed to handle Unicode characters properly
 """
 
 import requests
@@ -28,13 +29,45 @@ class DevotionalScraper:
         # Ensure data directory exists
         self.data_dir.mkdir(exist_ok=True)
 
+    def clean_text(self, text):
+        """Clean and normalize text content while preserving readability"""
+        if not text:
+            return text
+
+        # Only fix the truly problematic characters that display as boxes
+        # Keep smart quotes and dashes as they improve readability
+
+        # Fix encoding issues that show as weird character combinations
+        text = text.replace("â", "'")  # Common encoding issue for apostrophes
+        text = text.replace("â", '"')  # Common encoding issue for quotes
+        text = text.replace("â", '"')  # Common encoding issue for quotes
+        text = text.replace("â", "—")  # Common encoding issue for em dash
+        text = text.replace("â¦", "...")  # Common encoding issue for ellipsis
+        text = text.replace("Â", " ")  # Non-breaking space encoding issue
+
+        # Fix non-breaking spaces that don't display well
+        text = text.replace("\xa0", " ")  # Non-breaking space
+        text = text.replace("\u00a0", " ")  # Another form of non-breaking space
+
+        # Clean up multiple spaces
+        while "  " in text:
+            text = text.replace("  ", " ")
+
+        return text.strip()
+
     def fetch_page(self, url, retries=3):
-        """Fetch webpage with retry logic"""
+        """Fetch webpage with retry logic and proper encoding"""
         for attempt in range(retries):
             try:
                 logger.info(f"Fetching {url} (attempt {attempt + 1})")
                 response = requests.get(url, headers=self.headers, timeout=30)
                 response.raise_for_status()
+
+                # Ensure proper encoding
+                if response.encoding is None or response.encoding == "ISO-8859-1":
+                    # Try to detect encoding from content
+                    response.encoding = response.apparent_encoding or "utf-8"
+
                 return response.text
             except requests.RequestException as e:
                 logger.warning(f"Attempt {attempt + 1} failed: {e}")
@@ -63,22 +96,24 @@ class DevotionalScraper:
             # Date extraction - look for the daily devotional date
             date_elem = soup.find("div", class_="daily-devotional-date")
             if date_elem:
-                devotional["date"] = date_elem.get_text(strip=True)
+                devotional["date"] = self.clean_text(date_elem.get_text(strip=True))
             else:
                 devotional["date"] = datetime.now().strftime("%B %d, %Y")
 
             # Scripture text extraction
             scripture_elem = soup.find("div", class_="daily-devotional-scripture")
             if scripture_elem:
-                devotional["scripture"] = scripture_elem.get_text(strip=True)
+                devotional["scripture"] = self.clean_text(
+                    scripture_elem.get_text(strip=True)
+                )
 
             # Scripture reference extraction
             scripture_ref_elem = soup.find(
                 "div", class_="daily-devotional-scripture-reference"
             )
             if scripture_ref_elem:
-                devotional["scripture_reference"] = scripture_ref_elem.get_text(
-                    strip=True
+                devotional["scripture_reference"] = self.clean_text(
+                    scripture_ref_elem.get_text(strip=True)
                 )
 
             # Main content - the commentary/devotional text
@@ -89,15 +124,19 @@ class DevotionalScraper:
                 if paragraphs:
                     content_parts = []
                     for p in paragraphs:
-                        text = p.get_text(separator=" ", strip=True)
+                        text = self.clean_text(p.get_text(separator=" ", strip=True))
                         if text:  # Only add non-empty paragraphs
                             content_parts.append(text)
                     devotional["content"] = "\n\n".join(content_parts)
                 else:
                     # Fallback if no <p> tags found
-                    devotional["content"] = content_elem.get_text(
-                        separator="\n\n", strip=True
-                    )
+                    raw_content = content_elem.get_text(separator="\n\n", strip=True)
+                    devotional["content"] = self.clean_text(raw_content)
+
+            # Clean all text fields
+            for key in ["date", "title", "scripture", "scripture_reference", "content"]:
+                if devotional[key]:
+                    devotional[key] = self.clean_text(devotional[key])
 
             # Validation - ensure we got meaningful content
             if not devotional["content"] or len(devotional["content"]) < 50:
@@ -129,7 +168,7 @@ class DevotionalScraper:
         return []
 
     def save_devotional(self, devotional):
-        """Save devotional to JSON files"""
+        """Save devotional to JSON files with proper encoding"""
         devotionals_file = self.data_dir / "devotionals.json"
         latest_file = self.data_dir / "latest.json"
 
@@ -154,7 +193,7 @@ class DevotionalScraper:
                     logger.info(f"Updated existing devotional: {devotional['date']}")
                     break
 
-        # Save all devotionals
+        # Save all devotionals with explicit UTF-8 encoding
         with devotionals_file.open("w", encoding="utf-8") as f:
             json.dump(devotionals, f, indent=2, ensure_ascii=False)
 

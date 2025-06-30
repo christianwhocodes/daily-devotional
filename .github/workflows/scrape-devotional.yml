@@ -5,6 +5,17 @@ on:
     # Run every day at 10:00 AM UTC (1:00 PM Nairobi time)
     - cron: '0 10 * * *'
   workflow_dispatch: # Manual trigger for testing
+    inputs:
+      debug_mode:
+        description: 'Enable debug logging'
+        required: false
+        default: false
+        type: boolean
+      skip_commit:
+        description: 'Skip committing changes (for testing)'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   scrape:
@@ -31,20 +42,35 @@ jobs:
 
     - name: Run scraper
       run: poetry run python scripts/scrape_devotional.py
+      env:
+        DEBUG_MODE: ${{ github.event.inputs.debug_mode == 'true' && 'true' || 'false' }}
+
+    - name: Show scraped data (debug)
+      if: github.event.inputs.debug_mode == 'true'
+      run: |
+        echo "=== Latest Devotional ==="
+        cat data/latest.json | head -20
+        echo "=== File Sizes ==="
+        ls -la data/
 
     - name: Commit and push if changes
+      if: github.event.inputs.skip_commit != 'true'
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add data/
-        git diff --staged --quiet || git commit -m "Update daily devotional - $(date +'%Y-%m-%d')"
-        git push
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Update daily devotional - $(date +'%Y-%m-%d')"
+          git push
+        fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Deploy to GitHub Pages (optional)
       uses: peaceiris/actions-gh-pages@v3
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' && github.event.inputs.skip_commit != 'true'
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./
