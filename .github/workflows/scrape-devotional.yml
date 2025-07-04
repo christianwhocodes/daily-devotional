@@ -2,17 +2,17 @@ name: Daily Devotional Scraper
 
 on:
   schedule:
-    # Run every day at 10:00 AM UTC (1:00 PM Nairobi time)
-    - cron: '0 10 * * *'
+    # Run every day at 15:00 UTC (6:00 PM Nairobi time)
+    - cron: "0 15 * * *"
   workflow_dispatch: # Manual trigger for testing
     inputs:
       debug_mode:
-        description: 'Enable debug logging'
+        description: "Enable debug logging"
         required: false
         default: false
         type: boolean
       skip_commit:
-        description: 'Skip committing changes (for testing)'
+        description: "Skip committing changes (for testing)"
         required: false
         default: false
         type: boolean
@@ -22,51 +22,51 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.13'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.13"
 
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-      with:
-        virtualenvs-create: true
-        virtualenvs-in-project: true
-        version: latest
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          version: latest
 
-    - name: Install dependencies
-      run: poetry install --no-interaction --no-root
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
 
-    - name: Run scraper
-      run: poetry run python scripts/scrape_devotional.py
-      env:
-        DEBUG_MODE: ${{ github.event.inputs.debug_mode == 'true' && 'true' || 'false' }}
+      - name: Run scraper
+        run: poetry run python scripts/scrape_devotional.py
+        env:
+          DEBUG_MODE: ${{ github.event.inputs.debug_mode == 'true' && 'true' || 'false' }}
 
-    - name: Show scraped data (debug)
-      if: github.event.inputs.debug_mode == 'true'
-      run: |
-        echo "=== Latest Devotional ==="
-        cat data/latest.json | head -20
-        echo "=== File Sizes ==="
-        ls -la data/
+      - name: Show scraped data (debug)
+        if: github.event.inputs.debug_mode == 'true'
+        run: |
+          echo "=== Latest Devotional ==="
+          cat data/latest.json | head -20
+          echo "=== File Sizes ==="
+          ls -la data/
 
-    - name: Commit and push if changes
-      if: github.event.inputs.skip_commit != 'true'
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add data/
-        if git diff --staged --quiet; then
-          echo "No changes to commit"
-        else
-          git commit -m "Update daily devotional - $(date +'%Y-%m-%d')"
-          git push
-        fi
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit and push if changes
+        if: github.event.inputs.skip_commit != 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update daily devotional - $(date +'%Y-%m-%d')"
+            git push
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     # - name: Deploy to GitHub Pages (optional)
     #   uses: peaceiris/actions-gh-pages@v3
